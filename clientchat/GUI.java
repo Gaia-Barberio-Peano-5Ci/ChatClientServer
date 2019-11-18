@@ -6,7 +6,6 @@
 package clientchat;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -14,11 +13,12 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
+import java.lang.Runtime;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -30,16 +30,21 @@ public class GUI extends JFrame implements ActionListener {
     private Client client;
     private String IP_address = "127.0.0.1";
     private int port = 7;
-    private final String username;
+    private String username = null;
+    private ArrayList<String> users;
     private Thread tRecieve;
-
+    Runtime end;
     private final JSocketDialog dialog;
     private final JTable table;
     private final DefaultTableModel tm;
 
     private final JMenuBar menubar;
     private final JMenu option;
+    private final JMenu userMenu;
+    private final JMenuItem changeUser;
+    private final JMenuItem userConnected;
     private final JMenuItem infoServer;
+
     private final JScrollPane scroll;
     private final JTextField input;
     private final JButton invia;
@@ -51,21 +56,24 @@ public class GUI extends JFrame implements ActionListener {
 
         private String IP;
         private int porta;
+        private boolean commit;
 
-        JLabel intestazioneIP;
-        JTextField A;
-        JTextField B;
-        JTextField C;
-        JTextField D;
-        JLabel dotA;
-        JLabel dotB;
-        JLabel dotC;
-        JLabel intestazionePort;
-        JTextField port;
-        JButton done;
-        JButton clear;
+        private final JLabel intestazioneIP;
+        private final JTextField A;
+        private final JTextField B;
+        private final JTextField C;
+        private final JTextField D;
+        private final JLabel dotA;
+        private final JLabel dotB;
+        private final JLabel dotC;
+        private final JLabel intestazionePort;
+        private final JTextField port;
+        private final JButton done;
+        private final JButton clear;
 
         public JSocketDialog() {
+
+            commit = false;
             intestazioneIP = new JLabel("IP:");
             A = new JTextField();
             B = new JTextField();
@@ -85,6 +93,10 @@ public class GUI extends JFrame implements ActionListener {
             this.pack();
             this.setModal(true);
 
+        }
+
+        public boolean hasCommitted() {
+            return commit;
         }
 
         public String getIP() {
@@ -194,6 +206,7 @@ public class GUI extends JFrame implements ActionListener {
                     if (isIP == true) {
                         IP = A.getText() + "." + B.getText() + "." + C.getText() + "." + D.getText();
                         porta = Integer.parseInt(port.getText());
+                        commit = true;
                         this.setVisible(false);
                     } else {
                         JOptionPane.showMessageDialog(this, msg, "Errore di input!", JOptionPane.ERROR_MESSAGE);
@@ -236,33 +249,40 @@ public class GUI extends JFrame implements ActionListener {
         }
     }
 
-    public class RowRenderer extends DefaultTableCellRenderer {
-
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
-            setOpaque(true);
-            if (tm.getValueAt(row, col).equals(username)) {
-                setBackground(new Color(40, 176, 156));
-            } else if (tm.getValueAt(row, col - 1).equals(username) && col == 1) {
-                setBackground(new Color(40, 176, 156));
-            } else if (tm.getValueAt(row, col - 2).equals(username) && col == 2) {
-                setBackground(new Color(40, 176, 156));
-            } else {
-                setBackground(new Color(215, 222, 221));
-            }
-            return super.getTableCellRendererComponent(table, value, hasFocus, hasFocus, col, col);
-        }
-    }
-
+//    public class RowRenderer extends DefaultTableCellRenderer {
+//
+//        @Override
+//        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+//            setOpaque(true);
+//            if (tm.getValueAt(row, col).equals(username)) {
+//                setBackground(new Color(40, 176, 156));
+//            } else if (tm.getValueAt(row, col - 1).equals(username) && col == 1) {
+//                setBackground(new Color(40, 176, 156));
+//            } else if (tm.getValueAt(row, col - 2).equals(username) && col == 2) {
+//                setBackground(new Color(40, 176, 156));
+//            } else {
+//                setBackground(new Color(215, 222, 221));
+//            }
+//            return super.getTableCellRendererComponent(table, value, hasFocus, hasFocus, col, col);
+//        }
+//    }
     public GUI() {
+        users = new ArrayList();
+        end = Runtime.getRuntime();
         menubar = new JMenuBar();
         option = new JMenu("Opzioni");
+        userMenu = new JMenu("User");
+        changeUser = new JMenuItem("Change Username");
         infoServer = new JMenuItem("Informazioni Server");
-        infoServer.addActionListener(this);
+        userConnected = new JMenuItem("Users connected");
+
         login = new JLabel();
         dialog = new JSocketDialog();
         option.add(infoServer);
         menubar.add(option);
+        userMenu.add(changeUser);
+        userMenu.add(userConnected);
+        menubar.add(userMenu);
         this.setJMenuBar(menubar);
         tm = new DefaultTableModel(0, 3);
         table = new JTable(tm);
@@ -271,6 +291,7 @@ public class GUI extends JFrame implements ActionListener {
         table.setTableHeader(null);
         table.setIntercellSpacing(new Dimension(0, 0));
         scroll = new JScrollPane(table);
+
         table.setBackground(scroll.getBackground());
         input = new JTextField();
         input.addActionListener(this);
@@ -279,24 +300,38 @@ public class GUI extends JFrame implements ActionListener {
         drop = new JButton("Connetti");
         server = new JButton("Cambia server");
 
+        userConnected.addActionListener(this);
+        infoServer.addActionListener(this);
         invia.addActionListener(this);
         drop.addActionListener(this);
         server.addActionListener(this);
 
+        input.setEnabled(false);
+        invia.setEnabled(false);
         paint();
         this.pack();
         this.setVisible(true);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        username = JOptionPane.showInputDialog(this, "Inserisci l'username che distingue questo client", "Login", JOptionPane.QUESTION_MESSAGE);
+        username = JOptionPane.showInputDialog(this, "Inserisci l'username che distingue univocamente il client\nATTENZIONE: Lasciare vuoto questo campo o annullare\ncomporta l'utilizzo di un account guest", "Login", JOptionPane.QUESTION_MESSAGE);
+        if (username == null || username.equals("")) {
+            username = "Guest" + LocalTime.now().toString().substring(0, 8).replace(":", "") + LocalTime.now().toString().substring(9);
+        }
         login.setText("Username: " + username);
 
         int scelta = JOptionPane.showConfirmDialog(this, "L'echo server è attualmente impostato su localhost, vuoi cambiarlo?", "Dilemma", JOptionPane.YES_NO_OPTION);
         if (scelta == JOptionPane.YES_OPTION) {
             inputEVerifica();
-
         }
         this.pack();
+
+        //Aggiungo un Thread che viene utilizzato quando il mio runtime finisce
+        end.addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                invia("200disconnect$#" + username);
+            }
+
+        });
 
         connectClient();
     }
@@ -305,36 +340,42 @@ public class GUI extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent ae) {
         if (ae.getSource().equals(invia) || ae.getSource().equals(input)) {
             if (!input.getText().equals("")) {
-                String out = username + "$#" + LocalTime.now().toString().substring(0, 5) + "$#" + input.getText();
+                String out = username + "$#" + LocalTime.now().toString().substring(0, 5) + "$#" + input.getText() + "$#";
                 invia(out);
                 input.setBackground(Color.white);
 
             } else {
                 input.setBackground(Color.yellow);
-                JOptionPane.showMessageDialog(this, "Inserisci un valore di input!!", "ERRORE!", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Inserisci un valore di input", "ERRORE!", JOptionPane.ERROR_MESSAGE);
             }
             input.setText("");
         } else if (ae.getSource().equals(infoServer)) {
             JOptionPane.showMessageDialog(this, "IP address: " + IP_address + "\nPort: " + port, "Informazioni server", JOptionPane.INFORMATION_MESSAGE);
         } else if (ae.getSource().equals(drop)) {
             if (drop.getText().equals("Droppa connessione")) {
-                invia("disconnect");
+                invia("200disconnect$#" + username);
                 invia.setEnabled(false);
                 input.setEnabled(false);
-                while(tm.getRowCount()!=0){
-                    tm.removeRow(tm.getRowCount()-1);
+                login.setText("Username: " + username);
+                users.clear();
+                while (tm.getRowCount() != 0) {
+                    tm.removeRow(tm.getRowCount() - 1);
                 }
-                System.err.println("sono uscito");
                 drop.setText("Connetti");
             } else {
-                invia("connect");
+                invia("200connect$#" + username);
                 invia.setEnabled(true);
                 input.setEnabled(true);
                 drop.setText("Droppa connessione");
             }
         } else if (ae.getSource().equals(server)) {
             inputEVerifica();
-
+        } else if (ae.getSource().equals(userConnected)) {
+            StringBuilder b = new StringBuilder();
+            for (String s : users) {
+                b.append(s + "\n");
+            }
+            JOptionPane.showMessageDialog(this, "User Connesssi:\n" + b.toString(), "ALL USERS CONNECTED TO" + IP_address, JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -351,11 +392,11 @@ public class GUI extends JFrame implements ActionListener {
                                         .addGroup(layout.createSequentialGroup()
                                                 .addComponent(drop, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                                 .addGap(18, 18, 18)
-                                                .addComponent(server, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addComponent(server, javax.swing.GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                                         .addGroup(layout.createSequentialGroup()
-                                                .addComponent(input, javax.swing.GroupLayout.PREFERRED_SIZE, 193, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(input, javax.swing.GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                                 .addGap(18, 18, 18)
-                                                .addComponent(invia, javax.swing.GroupLayout.DEFAULT_SIZE, 81, Short.MAX_VALUE)))
+                                                .addComponent(invia, javax.swing.GroupLayout.PREFERRED_SIZE, 80, GroupLayout.PREFERRED_SIZE)))
                                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -381,8 +422,12 @@ public class GUI extends JFrame implements ActionListener {
         while (dialog.isVisible()) {
 
         }
-        port = dialog.getPorta();
-        IP_address = dialog.getIP();
+        if (dialog.hasCommitted()) {
+            port = dialog.getPorta();
+            IP_address = dialog.getIP();
+        } else {
+            JOptionPane.showMessageDialog(this, "La modifica di IP e PORTA del server è annullata", "Confirm", JOptionPane.INFORMATION_MESSAGE);
+        }
     }
 
     private void invia(String msg) {
@@ -390,15 +435,13 @@ public class GUI extends JFrame implements ActionListener {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                if (!client.isClosed()) {
-                    try {
-                        System.err.println(msg);
-                        client.send(port, IP_address, msg);
-                    } catch (InterruptedException | IOException ex) {
-                        Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                try {
+                    client.send(port, IP_address, msg);
+                } catch (InterruptedException | IOException ex) {
+                    Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+
         }).start();
     }
 
@@ -415,14 +458,63 @@ public class GUI extends JFrame implements ActionListener {
                     try {
                         String out = client.recieve();
                         StringTokenizer token = new StringTokenizer(out, "$#");
-                        String[] row = {
-                            token.nextToken(),
-                            token.nextToken(),
-                            token.nextToken()
-                        };
-                        tm.addRow(row);
-                        table.validate();
-                        table.repaint();
+                        String firstToken = token.nextToken();
+                        switch (firstToken) {
+                            case "invalid_user":
+                                drop.setText("Connetti");
+                                invia.setEnabled(false);
+                                input.setEnabled(false);
+                                JOptionPane.showMessageDialog(GUI.this, "L'utente inserito è già in uso o non è disponibile nel server selezionato.\nPuoi cambiarlo dalla barra del menu in\nUtente>Change Username\nCodice Errore: invalid_user:" + username, "INVALID USERNAME", JOptionPane.ERROR_MESSAGE);
+                                break;
+                            case "all_users":
+                                while (token.hasMoreTokens()) {
+                                    users.add(token.nextToken());
+                                }
+                                login.setText(login.getText() + " | User connessi: " + users.size());
+                                break;
+                            case "new_user":
+                                users.add(token.nextToken());
+                                login.setText("Username: " + username + " | User connessi: " + users.size());
+                                break;
+                            case "delete_user":
+                                users.remove(token.nextToken());
+                                login.setText("Username: " + username + " | User connessi: " + users.size());
+                                break;
+                            case "closed":
+                                drop.setText("Connetti");
+                                invia.setEnabled(false);
+                                input.setEnabled(false);
+                                login.setText("Username: " + username);
+                                JOptionPane.showMessageDialog(GUI.this, "Il server è chiuso! Connettiti a un altro server fino a che non ritorna online.", "SERVER CLOSED", JOptionPane.INFORMATION_MESSAGE);
+                                users.clear();
+                                break;
+                            default:
+                                String time = token.nextToken();
+                                String msg = token.nextToken();
+                                int i = 0,
+                                 i1 = 20;
+                                StringBuilder b = new StringBuilder();
+                                if (i1 < msg.length()) {
+                                    while (msg.length() > 20) {
+                                        b = b.append(msg.substring(i, i1) + "-\n");
+                                        System.err.println(b.toString());
+                                        msg = msg.substring(i, i1);
+                                    }
+                                    b.append(msg);
+                                } else {
+                                    b.append(msg);
+                                }
+                                String row[] = {
+                                    firstToken,
+                                    time,
+                                    b.toString()
+                                };
+                                tm.addRow(row);
+                                table.validate();
+                                table.repaint();
+                                break;
+                        }
+
                     } catch (InterruptedException | IOException ex) {
                         Logger.getLogger(GUI.class.getName()).log(Level.SEVERE, null, ex);
                     }
