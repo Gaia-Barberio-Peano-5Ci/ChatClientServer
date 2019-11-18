@@ -5,10 +5,6 @@
  */
 package serverchat;
 
-import java.net.SocketException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  *
  * @author barberio.gaia
@@ -19,7 +15,6 @@ public class ServerChat {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        try {
             // TODO code application logic here
             new Runnable() {
                 @Override
@@ -27,14 +22,6 @@ public class ServerChat {
                     new GUI();
                 }
             }.run();
-
-            ServerSocket ss = new ServerSocket(7);
-            Thread thread = new Thread(ss);
-            thread.start();
-            thread.join();
-        } catch (SocketException | InterruptedException ex) {
-            Logger.getLogger(ServerChat.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
 }
