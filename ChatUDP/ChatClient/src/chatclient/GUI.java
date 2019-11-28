@@ -138,7 +138,7 @@ public class GUI extends JFrame implements ActionListener {
                 String username1 = Ar2.getText();
                 String messaggio = message + " & " + username1;
                 buffer1 = messaggio.getBytes();
-                DatagramPacket sendpack = new DatagramPacket(buffer1, buffer1.length, InetAddress.getLoopbackAddress(), 9999);
+                DatagramPacket sendpack = new DatagramPacket(buffer1, buffer1.length, InetAddress.getLoopbackAddress(), 7777);
                 client.send(sendpack);
                 panel.append("l'utente e': " + username1 + "   ed il messaggio e' :  " + message );
                 
